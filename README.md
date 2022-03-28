@@ -1,0 +1,3 @@
+# wikibot
+
+wikibot readme cool
