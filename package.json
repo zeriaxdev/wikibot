@@ -28,7 +28,8 @@
     "colorthief": "^2.3.2",
     "discord.js": "^13.0.1",
     "dotenv": "^10.0.0",
-    "enmap": "^5.8.5"
+    "enmap": "^5.8.5",
+    "nsfwjs": "^2.4.1"
   },
   "devDependencies": {
     "eslint": "^7.30.0",

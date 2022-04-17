@@ -92,7 +92,7 @@ function toProperCase(string) {
 
 // Truncate a string
 function truncate(str, n) {
-  return str.length > n ? str.substr(0, n - 1) + "..." : str;
+  return str.length > n ? str.substr(0, n - 1) : str;
 }
 
 // These 2 process methods will catch exceptions and give *more details* about the error and stack trace.

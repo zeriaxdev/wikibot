@@ -1,6 +1,5 @@
 const axios = require("axios");
-const colorThief = require("colorthief");
-const { MessageEmbed } = require("discord.js");
+const { MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const config = require("../config");
 const { truncate, getSettings } = require("../modules/functions");
 
@@ -21,7 +20,7 @@ exports.run = (client, message, args, level) => {
   }
 
   const domainURL = `https://${currentLang}.wikipedia.org/w/api.php`;
-  const query = args[0] ? truncate(args.join(" "), 200) : "JavaScript";
+  const query = args[0] ? truncate(args.join(" "), 200) + "..." : "JavaScript";
   const url = `${domainURL}?action=query&prop=extracts&format=json&origin=*&exintro=&explaintext=&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(
     query
   )}&exlimit=max&exsentences=7&formatversion=2`;
@@ -44,6 +43,37 @@ exports.run = (client, message, args, level) => {
           if (index == 1) {
             // console.log(elem);
             // console.log(`main : ${elem.title}`);
+            const desc = () => {
+              const text = elem.extract.replace("\n", "\n\n");
+              const regex = new RegExp(/[^a-zA-Z ]/gi);
+
+              let res = text.replace(regex, "");
+              let fullText = res.toLowerCase().replace(/\s+/g, " ");
+              let textArray = fullText.split(" ");
+
+              let queryRes = query.replace(regex, "");
+              let fullQuery = queryRes.toLowerCase().replace(/\s+/g, " ");
+              let queryArray = fullQuery.split(" ");
+
+              // console.log(
+              //   `query: ${query.toLowerCase()}\n\ntext: ${fullText}\n\nincludes?: ${fullText.includes(
+              //     query.toLowerCase()
+              //   )}`
+              // );
+              console.log(textArray);
+              console.log(queryArray);
+
+              console.log(
+                fullText.includes(query.toLowerCase()),
+                queryArray.some((r) => textArray.includes(r))
+                  ? queryArray.some((r) => {
+                      fullText.replace(r, `${r.toUpperCase()}`);
+                    })
+                  : textArray.includes(queryArray.any)
+              );
+            };
+
+            desc();
 
             wikiEmbed
               .setTitle(`${elem.title}`)
@@ -85,7 +115,15 @@ exports.run = (client, message, args, level) => {
           .setURL(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`)
           .setColor(`RED`);
 
-        message.channel.send({ embeds: [wikiEmbed] });
+        const row = new MessageActionRow().addComponents(
+          new MessageButton()
+            .setEmoji(`🦆`)
+            .setLabel("DuckDuckGo")
+            .setURL(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`)
+            .setStyle("LINK")
+        );
+
+        message.channel.send({ embeds: [wikiEmbed], components: [row] });
       }
     })
     .catch(function (error) {
