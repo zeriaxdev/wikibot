@@ -1,6 +1,10 @@
 const logger = require("../modules/logger.js");
 const { getSettings, permlevel } = require("../modules/functions.js");
 const config = require("../config.js");
+const tf = require("@tensorflow/tfjs-node");
+const nsfw = require("nsfwjs");
+const { default: axios } = require("axios");
+const { nsfwCategories } = require("../modules/exports.js");
 
 // The MESSAGE event runs anytime a message is received
 // Note that due to the binding of client to every event, every event
@@ -12,6 +16,33 @@ module.exports = async (client, message) => {
   // It's good practice to ignore other bots. This also makes your bot ignore itself
   // and not get into a spam loop (we call that "botception").
   if (message.author.bot) return;
+
+  const contentTypes = ["image/png", "image/jpeg", "image/jpg"];
+
+  if (
+    message.attachments.some((attachment) =>
+      contentTypes.includes(attachment.contentType)
+    )
+  ) {
+    const url = message.attachments.first().url;
+
+    const pic = await axios.get(url, {
+      responseType: "arraybuffer",
+    });
+
+    const model = await nsfw.load();
+
+    const newImage = tf.node.decodeImage(pic.data, 3);
+    const predictions = await model.classify(newImage, 5);
+    newImage.dispose();
+
+    if (
+      nsfwCategories.includes(predictions[0].className) ||
+      nsfwCategories.includes(predictions[1].probability > 0.3)
+    ) {
+      message.channel.send(`<@${message.author.id}> delet this`);
+    }
+  }
 
   // Grab the settings for this server from Enmap.
   // If there is no guild, get default conf (DMs)
