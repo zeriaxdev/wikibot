@@ -24,7 +24,7 @@ module.exports = async (client, message) => {
       contentTypes.includes(attachment.contentType)
     )
   ) {
-    const url = message.attachments.first().url;
+    const url = message.attachments.first()?.url;
 
     const pic = await axios.get(url, {
       responseType: "arraybuffer",

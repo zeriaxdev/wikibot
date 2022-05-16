@@ -31,9 +31,7 @@ exports.run = (client, message, args, level) => {
 
   message.channel.send(`🔍 Searching Wikipedia...`).then((sentMsg) => {
     const domainURL = `https://${currentLang}.wikipedia.org/w/api.php`;
-    const query = args[0]
-      ? truncate(args.join(" "), 200) + "..."
-      : "JavaScript";
+    const query = args[0] ? truncate(args.join(" "), 200) : "JavaScript";
     const url = `${domainURL}?action=query&prop=extracts&format=json&origin=*&exintro=&explaintext=&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(
       query
     )}&exlimit=max&exsentences=7&formatversion=2`;
@@ -54,50 +52,45 @@ exports.run = (client, message, args, level) => {
             const index = elem.index;
 
             if (index == 1) {
-              // console.log(elem);
-              // console.log(`main : ${elem.title}`);
               const desc = () => {
+                let textEmbed = "";
                 const text = elem.extract.replace("\n", "\n\n");
                 const regex = new RegExp(/[^a-zA-Z ]/gi);
-
-                let res = text.replace(regex, "");
-                let fullText = res.toLowerCase().replace(/\s+/g, " ");
-                let textArray = fullText.split(" ");
+                const queryNew = query.replace(regex, "");
 
                 let queryRes = query.replace(regex, "");
                 let fullQuery = queryRes.toLowerCase().replace(/\s+/g, " ");
                 let queryArray = fullQuery.split(" ");
 
-                // console.log(
-                //   `query: ${query.toLowerCase()}\n\ntext: ${fullText}\n\nincludes?: ${fullText.includes(
-                //     query.toLowerCase()
-                //   )}`
-                // );
-                // console.log(textArray);
-                // console.log(queryArray);
-
-                // console.log(
-                //   fullText.includes(query.toLowerCase()),
-                //   queryArray.some((r) => textArray.includes(r))
-                //     ? queryArray.some((r) => {
-                //         fullText.replace(r, `${r.toUpperCase()}`);
-                //       })
-                //     : textArray.includes(queryArray.any)
-                // );
+                if (text.includes(queryNew.toLowerCase()) && queryArray > 1) {
+                  const regex = new RegExp(queryNew.toUpperCase(), "gi");
+                  const textEmbed = text.replace(
+                    regex,
+                    `**${queryNew.toLowerCase}**`
+                  );
+                  return textEmbed;
+                } else if (
+                  queryArray.some((r) => {
+                    return text.includes(r);
+                  })
+                ) {
+                  queryArray.forEach((r) => {
+                    const regex = new RegExp(r.toLowerCase(), "gi");
+                    textEmbed = text.replace(regex, `**${r.toUpperCase()}**`);
+                  });
+                  return textEmbed;
+                } else {
+                  return text;
+                }
               };
 
-              desc();
-
-              wikiEmbed
-                .setTitle(`${elem.title}`)
-                .setDescription(`${elem.extract.replace("\n", "\n\n")}`);
+              wikiEmbed.setTitle(`${elem.title}`).setDescription(`${desc()}`);
 
               const imageURL = `${domainURL}?action=query&prop=pageimages&titles=${encodeURIComponent(
                 elem.title
               )}&format=json&pithumbsize=1000&formatversion=2`;
 
               axios.get(imageURL).then(async (response) => {
-                // console.log(response.data.query);
                 const imgPages = response.data.query.pages[0];
                 const imgExists = imgPages.thumbnail?.source ? true : false;
 
@@ -113,11 +106,11 @@ exports.run = (client, message, args, level) => {
                   const predictions = await model.classify(image, 5);
                   image.dispose();
 
-                  // console.log(predictions);
                   wikiEmbed.setColor(`GREEN`);
                   if (
                     nsfwCategories.includes(predictions[0].className) ||
-                    nsfwCategories.includes(predictions[1].probability > 0.3)
+                    (nsfwCategories.includes(predictions[1].className) &&
+                      predictions[1].probability >= 0.3)
                   ) {
                     let image = await Jimp.read(imgPages.thumbnail.source);
                     image.blur(100);
@@ -215,6 +208,6 @@ exports.conf = {
 exports.help = {
   name: "wiki",
   category: "Miscellaneous",
-  description: "Search Wikipedia",
+  description: "Searches for an article on Wikipedia",
   usage: "wiki",
 };

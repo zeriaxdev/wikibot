@@ -1,3 +1,4 @@
+const logger = require("../modules/logger.js");
 const { default: axios } = require("axios");
 const tf = require("@tensorflow/tfjs-node");
 const nsfw = require("nsfwjs");
@@ -7,7 +8,6 @@ const { MessageEmbed, MessageAttachment } = require("discord.js");
 const Scraper = require("images-scraper");
 const { truncate } = require("../modules/functions");
 const { nsfwCategories } = require("../modules/exports");
-const svg2png = require("svg2png");
 
 exports.run = (client, message, args) => {
   message.channel.send("🔍 Scraping Google...").then(async (sentMsg) => {
@@ -19,12 +19,13 @@ exports.run = (client, message, args) => {
       },
     });
 
-    const image = async () => {
+    const googleImage = async () => {
       const results = await google.scrape(query, 1);
       return results[0].url;
     };
 
-    const processImage = await image();
+    const processImage = encodeURI(await googleImage());
+
     sentMsg.edit({
       content: `⚙ Processing image...`,
     });
@@ -46,20 +47,6 @@ exports.run = (client, message, args) => {
       .setImage(processImage);
 
     let processedImage = await Jimp.read(processImage);
-    let svgImage = {
-      width: processedImage.bitmap.width,
-      height: processedImage.bitmap.height,
-    };
-
-    if (pic.headers["content-type"] === "image/svg") {
-      const pngImage = await svg2png(svg, {
-        width: img.bitmap.width,
-        height: img.bitmap.height,
-      });
-
-      processImage = pngImage;
-    }
-
     const model = await nsfw.load();
 
     const newImage = tf.node.decodeImage(pic.data, 3);
@@ -68,10 +55,12 @@ exports.run = (client, message, args) => {
 
     if (
       nsfwCategories.includes(predictions[0].className) ||
-      nsfwCategories.includes(predictions[1].probability > 0.3)
+      (nsfwCategories.includes(predictions[1].className) &&
+        predictions[1].probability >= 0.3)
     ) {
+      let image = processedImage;
+      image.blur(100);
       const newerImage = await image.getBufferAsync(Jimp.MIME_JPEG);
-      processedImage.blur(169);
       processedImage.blur(169);
 
       const canvas = Canvas.createCanvas(
